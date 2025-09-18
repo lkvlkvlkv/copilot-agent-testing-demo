@@ -222,49 +222,66 @@ class API:
         self.temp_files = []
 
     def process_everything(self, input_data, output_file=None, backup=True):
+        self.errors = []  # 清空錯誤
         self.log_activity("PROCESS_START", "Starting data processing")
 
-        all_data = []
+        processed_data = []
 
         for item in input_data:
-            if isinstance(item, str):
-                if item.startswith('{') or item.startswith('['):
-                    parsed = self.parse_json_data(item)
-                elif item.startswith('<'):
-                    parsed = self.parse_xml_data(item)
+            try:
+                if isinstance(item, str):
+                    if item.startswith('{') or item.startswith('['):
+                        parsed = self.parse_json_data(item)
+                    elif item.startswith('<'):
+                        parsed = self.parse_xml_data(item)
+                    else:
+                        continue
                 else:
-                    continue
-            else:
-                parsed = item
+                    parsed = item
 
-            if parsed:
-                processed = self.process_user_data(parsed)
-                all_data.append(processed)
+                if parsed:
+                    processed = self.process_user_data(parsed)
+                    processed_data.append(processed)
+            except Exception as e:
+                self.errors.append(f"Processing Error: {str(e)}")
+                self.log_activity("PROCESS_ERROR", f"Error processing item: {str(e)}")
 
-        if all_data:
-            self.save_to_database(all_data)
+        report = None
+        if processed_data:
+            try:
+                self.save_to_database(processed_data)
+            except Exception as e:
+                self.errors.append(f"Database Save Error: {str(e)}")
+                self.log_activity("DB_ERROR", f"Error saving to database: {str(e)}")
 
             if output_file:
-                self.save_to_file(output_file, all_data)
+                try:
+                    self.save_to_file(output_file, processed_data)
+                except Exception as e:
+                    self.errors.append(f"File Save Error: {str(e)}")
+                    self.log_activity("FILE_ERROR", f"Error saving to file: {str(e)}")
 
             if backup:
-                self.backup_data(all_data)
+                try:
+                    self.backup_data(processed_data)
+                except Exception as e:
+                    self.errors.append(f"Backup Error: {str(e)}")
+                    self.log_activity("BACKUP_ERROR", f"Error during backup: {str(e)}")
 
-            report = self.generate_report(all_data)
-            self.log_activity("PROCESS_COMPLETE", f"Processed {len(all_data)} records")
+            try:
+                report = self.generate_report(processed_data)
+            except Exception as e:
+                self.errors.append(f"Report Generation Error: {str(e)}")
+                self.log_activity("REPORT_ERROR", f"Error generating report: {str(e)}")
+
+            self.log_activity("PROCESS_COMPLETE", f"Processed {len(processed_data)} records")
 
             return {
                 'success': True,
-                'processed_count': len(all_data),
+                'processed_count': len(processed_data),
                 'report': report,
                 'errors': self.errors
             }
-
-        return {
-            'success': False,
-            'processed_count': 0,
-            'errors': self.errors
-        }
 
     def __del__(self):
         try:
