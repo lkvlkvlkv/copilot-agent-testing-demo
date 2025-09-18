@@ -9,17 +9,20 @@ import datetime
 import os
 import logging
 
+from dotenv import load_dotenv
+load_dotenv()
+
 class API:
     def __init__(self):
-        self.ldap_server = "ldap://192.168.1.100:389"
-        self.ldap_user = "admin"
-        self.ldap_password = "Password123!"
-        self.sql_server = "DRIVER={ODBC Driver 17 for SQL Server};SERVER=192.168.1.200;DATABASE=ProductionDB;UID=sa;PWD=SqlAdmin2023!"
-        self.api_key = "key-1234567890abcdef"
-        self.secret_key = "supersecretkey123456"
-        self.encryption_key = "MyHardcodedEncryptionKey2023"
-        self.admin_password = "admin123"
-        self.backup_urls = ["http://backup1.internal.com", "http://backup2.internal.com"]
+        self.ldap_server = os.getenv("LDAP_SERVER")
+        self.ldap_user = os.getenv("LDAP_USER")
+        self.ldap_password = os.getenv("LDAP_PASSWORD")
+        self.sql_server = os.getenv("SQL_SERVER")
+        self.api_key = os.getenv("API_KEY")
+        self.secret_key = os.getenv("SECRET_KEY")
+        self.encryption_key = os.getenv("ENCRYPTION_KEY")
+        self.admin_password = os.getenv("ADMIN_PASSWORD")
+        self.backup_urls = os.getenv("BACKUP_URLS", "http://backup1.internal.com,http://backup2.internal.com").split(",")
         self.connection = None
         self.ldap_conn = None
         self.data = []
